@@ -228,6 +228,7 @@ q1:
             buffer++;
             if(*buffer == '}') {
                 info_atomo.atomo = COMENTARIO;
+                buffer++;
             }
           
             else {goto q1;}
@@ -468,10 +469,17 @@ q3:
 //#########################
 // INICIO: SINTATICO
 void consome(TAtomo atomo){
-    if(lookahead==atomo){
+    if(lookahead == atomo){
         info_atomo = obter_atomo();
-        lookahead=info_atomo.atomo;
+        lookahead = info_atomo.atomo;
     }
+
+    else if(lookahead == COMENTARIO) {
+        info_atomo = obter_atomo();
+        lookahead = info_atomo.atomo;
+        consome(atomo);
+    }
+
     else{
         printf("#%d:Erro sintatico:esperado [%s] encontrado [%s] \n", info_atomo.linha, msgAtomo[atomo], msgAtomo[lookahead]);
         exit(0);
@@ -480,6 +488,8 @@ void consome(TAtomo atomo){
 
 // E::=numero|identificador|+EE|*EE
 void initPrograma(){
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     consome(PROGRAM);
     consome(IDENTIFICADOR);
     consome(PONTO_VIRGULA);
@@ -488,11 +498,14 @@ void initPrograma(){
 }
 
 void bloco() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     declaracaoVariaveis();
     comandoComposto();
 }
 
 void declaracaoVariaveis() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
 q1:
     if(lookahead == INTEGER || lookahead == BOOLEAN) {
         tipo();
@@ -502,7 +515,9 @@ q1:
     }
 }
 
-void tipo() { 
+void tipo() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     switch (lookahead) {  
         case INTEGER:
             consome(INTEGER);
@@ -517,10 +532,12 @@ void tipo() {
     }
 }
 
-void listaVariavel() {
+void listaVariavel() { 
     consome(IDENTIFICADOR);
     
 q1:
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     if(lookahead == VIRGULA) {
         consome(VIRGULA);
         consome(IDENTIFICADOR);
@@ -534,6 +551,8 @@ void comandoComposto() {
     comando();
 
 q1:
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+  
     if(lookahead == PONTO_VIRGULA) {
         consome(PONTO_VIRGULA);
         comando();
@@ -544,6 +563,8 @@ q1:
 }
 
 void comando() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     switch (lookahead) {  
         case SET:
             comandoAtribuicao();
@@ -576,6 +597,8 @@ void comando() {
 }
 
 void comandoAtribuicao() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     consome(SET);
     consome(IDENTIFICADOR);
     consome(TO);
@@ -587,7 +610,9 @@ void comandoCondicional() {
     expressao();
     consome(DOIS_PONTOS);
     comando();
-
+    
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+    
     if(lookahead == ELIF) {
         consome(ELIF);
         comando();
@@ -595,6 +620,8 @@ void comandoCondicional() {
 }
 
 void comandoRepeticao() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     consome(FOR);
     consome(IDENTIFICADOR);
     consome(OF);
@@ -606,6 +633,8 @@ void comandoRepeticao() {
 }
 
 void comandoEntrada() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     consome(READ);
     consome(ABRE_PARENTESES);
     listaVariavel();
@@ -618,6 +647,8 @@ void comandoSaida() {
     expressao();
     
 q1:
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     if(lookahead == VIRGULA) {
         consome(VIRGULA);
         expressao();
@@ -631,6 +662,8 @@ void expressao() {
     expressaoLogica();
     
 q1:
+   while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+   
    if(lookahead == OR) {
         consome(OR);
         expressaoLogica();
@@ -642,6 +675,8 @@ void expressaoLogica() {
     expressaoRelacional();
 
 q1:
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     if(lookahead == AND) {
         consome(AND);
         expressaoRelacional();
@@ -651,6 +686,8 @@ q1:
 
 void expressaoRelacional() {
     expressaoSimples();
+  
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
     
     if(lookahead == MENOR || lookahead == MENOR_IGUAL || lookahead == IGUAL || lookahead == DIFERENTE || lookahead == MAIOR || lookahead == MAIOR_IGUAL) {
         opRelacional();
@@ -659,6 +696,8 @@ void expressaoRelacional() {
 }
 
 void opRelacional() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     switch(lookahead) {
         case MENOR:
             consome(MENOR);
@@ -693,6 +732,7 @@ void expressaoSimples() {
     termo();
 
 q1:
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);} 
     switch (lookahead) {
         case OP_SOMA:
             consome(OP_SOMA);
@@ -715,6 +755,7 @@ void termo() {
     fator();
 
 q1:
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
     switch (lookahead) {
         case OP_MULT:
             consome(OP_MULT);
@@ -734,6 +775,8 @@ q1:
 }
 
 void fator() {
+    while(lookahead == COMENTARIO) {consome(COMENTARIO);}
+
     switch(lookahead) {
         case IDENTIFICADOR:
             consome(IDENTIFICADOR);
