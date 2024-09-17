@@ -56,7 +56,7 @@ typedef enum{
 typedef struct{
     TAtomo atomo;
     int linha;
-    float atributo_numero;
+    char atributo_numero[20];
     char atributo_ID[16];
 }TInfoAtomo;
 
@@ -126,6 +126,7 @@ TInfoAtomo reconhece_num();
 TAtomo lookahead;//posteriormente sera do tipo TAtomo, declarado no ASDR
 TInfoAtomo info_atomo;
 void consome(TAtomo atomo);
+int converteBinario(char atributo_numero[]);
 
 // declaracao da funcao
 void initPrograma();
@@ -182,7 +183,7 @@ int main (int argc, char** argv) {
 
     consome(EOS); // se lookahead chegou ao final
 
-    printf("nr linhas %d: programa sintaticamente correto\n", info_atomo.linha);
+    printf("%d linhas analisadas, programa sintaticamente correto\n", info_atomo.linha);
 
     return 0;
 }
@@ -340,7 +341,7 @@ q1:
         printf("%03d# %s | %s\n", info_atomo.linha, msgAtomo[info_atomo.atomo], info_atomo.atributo_ID);
 
     else if(info_atomo.atomo == NUMERO)
-        printf("%03d# %s | %.2f\n", info_atomo.linha, msgAtomo[info_atomo.atomo], info_atomo.atributo_numero);
+        printf("%03d# %s | %d\n", info_atomo.linha, msgAtomo[info_atomo.atomo], converteBinario(info_atomo.atributo_numero));
     
     else
         printf("%03d# %s\n", info_atomo.linha, msgAtomo[info_atomo.atomo]);
@@ -359,7 +360,10 @@ q1:
         buffer++;
         goto q1;
     }
-    if( isupper(*buffer))
+    //else if( isupper(*buffer))
+    //    return info_atomo;
+
+    else
         return info_atomo;
 
     //"  var1@"
@@ -429,38 +433,31 @@ q1:
     return info_atomo;
 }
 // NUMERO -> DIGITO+.DIGITO+
+// NUMERO -> 0b (0|1)+
 TInfoAtomo reconhece_num(){
     TInfoAtomo info_atomo;
     info_atomo.atomo = ERRO;
-    //char *iniID = buffer;
+    char *iniID = buffer;
     // ja temos um digito
     buffer++;
+
+    if(*iniID != '0' || *buffer != 'b')
+        return info_atomo;
+
+    buffer++;
+
+    if(*buffer != '0' || *buffer != '1')
+        return info_atomo;
+
 q1:
-    if(isdigit(*buffer)){
+    if(*buffer == '0' || *buffer == '1') {
         buffer++;
         goto q1;
     }
-    if(*buffer=='.'){
-        buffer++;
-        goto q2;
-    }
-    return info_atomo;
-q2:
-    if(isdigit(*buffer)){
-        buffer++;
-        goto q3;
-    }
-    return info_atomo;
-q3:
-    if(isdigit(*buffer)){
-        buffer++;
-        goto q3;
-    }
-    if(isalpha(*buffer)){
-        return info_atomo;
-    }
     // falta recortar e converter o numero
     info_atomo.atomo = NUMERO;
+    strncpy(info_atomo.atributo_numero, iniID, buffer - iniID);
+    info_atomo.atributo_numero[buffer - iniID] = 0; 
     return info_atomo;
 }
 //#########################
@@ -484,6 +481,15 @@ void consome(TAtomo atomo){
         printf("#%d:Erro sintatico:esperado [%s] encontrado [%s] \n", info_atomo.linha, msgAtomo[atomo], msgAtomo[lookahead]);
         exit(0);
     }
+}
+
+int converteBinario(char atributo_numero[]) {
+    int decimal = 0;  
+    for (int i = 2; atributo_numero[i] != '\0'; i++) {
+        decimal = (decimal << 1) | (atributo_numero[i] - '0');
+    }
+
+    return decimal;
 }
 
 // E::=numero|identificador|+EE|*EE

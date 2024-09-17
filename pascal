@@ -5,11 +5,12 @@ program exemplo2;
 	integer num_1, num_2;
 	integer maior;
 begin
-	read(num_1); # imprime o valor
+	read(num_1);
 	read(num_2);
 	if num_1 > num_2:
-		maior = num_1
+ 		set maior to num_1
 	elif
-		maior = num_2;
-	write(maior)
+ 		set maior to num_2;
+	
+	write(maior) # imprime o maior valor
 end.
