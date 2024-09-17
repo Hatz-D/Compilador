@@ -195,9 +195,10 @@ TInfoAtomo obter_atomo(){
 
     // consome espaços em branco quebra de linhas tabulação e retorno de carro
     while(*buffer == ' ' || *buffer == '\n' || *buffer == '\t' || *buffer == '\r'){
-        if(*buffer =='\n')
+        if(*buffer =='\n') {
             contaLinha++;
-
+        }
+        
         buffer++;
     }
     // reconhece identificador
@@ -360,10 +361,7 @@ q1:
         buffer++;
         goto q1;
     }
-    //else if( isupper(*buffer))
-    //    return info_atomo;
-
-    else
+    else if( isupper(*buffer))
         return info_atomo;
 
     //"  var1@"
@@ -446,15 +444,15 @@ TInfoAtomo reconhece_num(){
 
     buffer++;
 
-    if(*buffer != '0' || *buffer != '1')
+    if(*buffer != '0' && *buffer != '1')
         return info_atomo;
-
+    
 q1:
     if(*buffer == '0' || *buffer == '1') {
         buffer++;
         goto q1;
     }
-    // falta recortar e converter o numero
+
     info_atomo.atomo = NUMERO;
     strncpy(info_atomo.atributo_numero, iniID, buffer - iniID);
     info_atomo.atributo_numero[buffer - iniID] = 0; 
