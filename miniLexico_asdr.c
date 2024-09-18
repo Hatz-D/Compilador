@@ -176,6 +176,8 @@ int main (int argc, char** argv) {
         return 1;
     }
 
+    buffer[bytes-1] =  '\0';
+
     info_atomo = obter_atomo();
     lookahead = info_atomo.atomo;
 
@@ -344,6 +346,9 @@ q1:
     else if(info_atomo.atomo == NUMERO)
         printf("%03d# %s | %d\n", info_atomo.linha, msgAtomo[info_atomo.atomo], converteBinario(info_atomo.atributo_numero));
     
+    else if(info_atomo.atomo == EOS) {
+    }
+
     else
         printf("%03d# %s\n", info_atomo.linha, msgAtomo[info_atomo.atomo]);
 
@@ -812,7 +817,6 @@ void fator() {
         default:
             consome(ERRO);
     }
-
 }
 
 //#########################
