@@ -532,12 +532,8 @@ void tipo() {
             consome(INTEGER);
             break;
 
-        case BOOLEAN:
-            consome(BOOLEAN);
-            break;
-        
         default:
-            consome(ERRO);
+            consome(BOOLEAN);
     }
 }
 
@@ -595,12 +591,8 @@ void comando() {
             comandoSaida();
             break;
 
-        case BEGIN:
-            comandoComposto();
-            break;
-
         default:
-            consome(ERRO);
+            comandoComposto();
     }
 
 }
@@ -728,12 +720,8 @@ void opRelacional() {
             consome(MAIOR);
             break;
           
-        case MAIOR_IGUAL:
-            consome(MAIOR_IGUAL);
-            break;
-
         default:
-            consome(ERRO);
+            consome(MAIOR_IGUAL);
     }
 }
 
@@ -808,14 +796,10 @@ void fator() {
             fator();
             break;
 
-        case ABRE_PARENTESES:
+        default:
             consome(ABRE_PARENTESES);
             expressao();
             consome(FECHA_PARENTESES);
-            break;
-
-        default:
-            consome(ERRO);
     }
 }
 
