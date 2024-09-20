@@ -1,12 +1,18 @@
 /*
-Implementacao do mini analisador lexico
+Implementacao dos analisadores lexico e sintatico para a linguagem Pascal+-
 Compile com:
 gcc -g -Og -Wall  .\miniLexico_asdr.c -o .\miniLexico_asdr
+
+Autores:
+Diogo Lourenzon Hatz - 10402406
+Nicolas Fernandes Melnik - 10402170
 */
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdlib.h> // exit(0);
+#include <stdlib.h>
+
 //#########################
 // INICIO: COMUM PARA LEXICO E SINTATICO
 
@@ -108,6 +114,7 @@ char *msgAtomo[] = {
 // INICIO: LEXICO
 // variavel global para o analisador lexico
 // variavel bufer devera ser inicializada a partir de um arquivo texto
+
 char *buffer;         
 int contaLinha = 1;
 
@@ -115,7 +122,6 @@ int contaLinha = 1;
 TInfoAtomo obter_atomo(); // irah integrar com a Analisador Sintatico
 TInfoAtomo reconhece_id();
 TInfoAtomo reconhece_num();
-
 
 //#########################
 // FIM: LEXICO
@@ -151,7 +157,9 @@ void fator();
 
 //#########################
 // FIM: SINTATICO
+
 int main (int argc, char** argv) {
+    // Verificando a passagem do arquivo via linha de comando
     if(argc != 2) {
         printf("\nInsira o path do arquivo a ser lido!");
         return 1;
@@ -163,11 +171,13 @@ int main (int argc, char** argv) {
       printf("\nArquivo inválido!");
       return 1;
     }
-
+    
+    // Verificando a quantidade de bytes do arquivo
     fseek(file, 0, SEEK_END);
     long fileSize = ftell(file);
     fseek(file, 0, SEEK_SET);
     
+    // Criando o buffer com o tamanho do arquivo e armazenando o conteúdo do arquivo no buffer
     buffer = malloc(fileSize);
     size_t bytes = fread(buffer, 1, fileSize, file);
 
@@ -176,6 +186,7 @@ int main (int argc, char** argv) {
         return 1;
     }
 
+    // Settando o último byte do buffer como finalização de string
     buffer[bytes-1] =  '\0';
 
     info_atomo = obter_atomo();
@@ -203,15 +214,18 @@ TInfoAtomo obter_atomo(){
         
         buffer++;
     }
+
     // reconhece identificador
     if(islower(*buffer)){ // ser for letra mininuscula
         info_atomo = reconhece_id();
     }
+
     // reconhece numero
     else if(isdigit(*buffer)){ // ser for digito
         info_atomo = reconhece_num();
     }
 
+    // reconhece comentário de linha única
     else if(*buffer == '#') {
         while(*buffer != '\n')
             buffer++;
@@ -219,6 +233,7 @@ TInfoAtomo obter_atomo(){
         info_atomo.atomo = COMENTARIO;
     }
 
+    // reconhece comentário de múltiplas linhas
     else if(*buffer == '{') {
         buffer++;
       
@@ -241,6 +256,7 @@ q1:
         else{info_atomo.atomo = ERRO;}
     }
     
+    // reconhecedores de caracteres especiais
     else if(*buffer == '+'){
         info_atomo.atomo = OP_SOMA;
         buffer++;
@@ -330,16 +346,19 @@ q1:
         }
     }
 
+    // reconhece fim do buffer
     else if(*buffer == 0){
         info_atomo.atomo = EOS;
     }
     
+    // reconhece erro lexico
     else{
         info_atomo.atomo = ERRO;
     }
     
     info_atomo.linha = contaLinha;
 
+    // imprime o átomo identificado pelo analisador lexico
     if(info_atomo.atomo == IDENTIFICADOR) 
         printf("%03d# %s | %s\n", info_atomo.linha, msgAtomo[info_atomo.atomo], info_atomo.atributo_ID);
 
@@ -354,7 +373,7 @@ q1:
 
     return info_atomo;
 }
-// IDENTIFICADOR -> LETRA_MINUSCULA (LETRA_MINUSCULA | DIGITO )*
+// IDENTIFICADOR -> LETRA_MINUSCULA (LETRA_MINUSCULA | DIGITO | _)*
 TInfoAtomo reconhece_id(){
     TInfoAtomo info_atomo;
     info_atomo.atomo = ERRO;
@@ -369,9 +388,7 @@ q1:
     else if( isupper(*buffer))
         return info_atomo;
 
-    //"  var1@"
-    // falta testar o tamanho do identificador que dever ser menor que 15,
-    // se for maior eh erro lexico
+    // verifica se a quantidade de caracteres é maior do que 15 para dar erro lexico
     if(buffer - iniID > 15)
         return info_atomo;
 
@@ -379,6 +396,7 @@ q1:
     info_atomo.atributo_ID[buffer - iniID] = 0; // finaliza a string
     info_atomo.atomo = IDENTIFICADOR;
 
+    // reconhecer palavras reservadas da gramatica
     if(strcmp(info_atomo.atributo_ID, "and") == 0)
         info_atomo.atomo = AND;      
 
@@ -486,6 +504,7 @@ void consome(TAtomo atomo){
     }
 }
 
+// funcao para converter o atomo numero em binario para decimal
 int converteBinario(char atributo_numero[]) {
     int decimal = 0;  
     for (int i = 2; atributo_numero[i] != '\0'; i++) {
@@ -495,7 +514,7 @@ int converteBinario(char atributo_numero[]) {
     return decimal;
 }
 
-// E::=numero|identificador|+EE|*EE
+// simbolo inicial da gramatica
 void initPrograma(){
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
 
@@ -804,4 +823,4 @@ void fator() {
 }
 
 //#########################
-// INICIO: SINTATICO
+// FIM: SINTATICO
