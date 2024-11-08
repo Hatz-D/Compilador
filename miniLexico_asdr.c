@@ -107,6 +107,12 @@ char *msgAtomo[] = {
     "BARRA",
     "EOS"
 };
+
+typedef struct{
+    char id[15];
+    int endereco;
+}tabela;
+
 //#########################
 // FIM: COMUM PARA LEXICO E SINTATICO
 
@@ -139,7 +145,7 @@ void initPrograma();
 void bloco();
 void declaracaoVariaveis();
 void tipo();
-void listaVariavel();
+void listaVariavel(int flag);
 void comandoComposto();
 void comando();
 void comandoAtribuicao();
@@ -157,6 +163,22 @@ void fator();
 
 //#########################
 // FIM: SINTATICO
+
+
+//#########################
+// INICIO: CODIGO INTERMEDIARIO
+
+int proximo_rotulo();
+int busca_tabela_simbolos(char atributo_ID[]);
+void cria_tabela_simbolos();
+
+// variavel global para tabela de simbolos, quantidade de simbolos e quantidade de rotulos
+int qntSimbolos = 0;
+int qntRotulos = 0;
+tabela tabelaSimbolos[100];
+
+//#########################
+// FIM: CODIGO INTERMEDIARIO
 
 int main (int argc, char** argv) {
     // Verificando a passagem do arquivo via linha de comando
@@ -187,7 +209,7 @@ int main (int argc, char** argv) {
     }
 
     // Settando o último byte do buffer como finalização de string
-    buffer[bytes-1] =  '\0';
+    buffer[bytes] =  '\0';
 
     info_atomo = obter_atomo();
     lookahead = info_atomo.atomo;
@@ -196,7 +218,13 @@ int main (int argc, char** argv) {
 
     consome(EOS); // se lookahead chegou ao final
 
-    printf("%d linhas analisadas, programa sintaticamente correto\n", info_atomo.linha);
+    printf("\n%d linhas analisadas, programa sintaticamente correto\n", info_atomo.linha);
+
+    printf("\nTABELA DE SIMBOLOS\n");
+    
+    for(int i = 0; i < qntSimbolos; ++i) {
+        printf("%s\t|  Endereco: %d\n", tabelaSimbolos[i].id, tabelaSimbolos[i].endereco);
+    }
 
     return 0;
 }
@@ -359,17 +387,17 @@ q1:
     info_atomo.linha = contaLinha;
 
     // imprime o átomo identificado pelo analisador lexico
-    if(info_atomo.atomo == IDENTIFICADOR) 
-        printf("%03d# %s | %s\n", info_atomo.linha, msgAtomo[info_atomo.atomo], info_atomo.atributo_ID);
+    // if(info_atomo.atomo == IDENTIFICADOR) 
+    //    printf("%03d# %s | %s\n", info_atomo.linha, msgAtomo[info_atomo.atomo], info_atomo.atributo_ID);
 
-    else if(info_atomo.atomo == NUMERO)
-        printf("%03d# %s | %d\n", info_atomo.linha, msgAtomo[info_atomo.atomo], converteBinario(info_atomo.atributo_numero));
+    // else if(info_atomo.atomo == NUMERO)
+    //    printf("%03d# %s | %d\n", info_atomo.linha, msgAtomo[info_atomo.atomo], converteBinario(info_atomo.atributo_numero));
     
-    else if(info_atomo.atomo == EOS) {
-    }
+    // else if(info_atomo.atomo == EOS) {
+    // }
 
-    else
-        printf("%03d# %s\n", info_atomo.linha, msgAtomo[info_atomo.atomo]);
+    // else
+    //    printf("%03d# %s\n", info_atomo.linha, msgAtomo[info_atomo.atomo]);
 
     return info_atomo;
 }
@@ -518,10 +546,12 @@ int converteBinario(char atributo_numero[]) {
 void initPrograma(){
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
 
+    printf("\tINPP\n");
     consome(PROGRAM);
     consome(IDENTIFICADOR);
     consome(PONTO_VIRGULA);
     bloco();
+    printf("\tPARA\n");
     consome(PONTO);
 }
 
@@ -529,6 +559,7 @@ void bloco() {
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
 
     declaracaoVariaveis();
+    printf("\tAMEM %d\n", qntSimbolos);
     comandoComposto();
 }
 
@@ -537,7 +568,7 @@ void declaracaoVariaveis() {
 q1:
     if(lookahead == INTEGER || lookahead == BOOLEAN) {
         tipo();
-        listaVariavel();
+        listaVariavel(1);
         consome(PONTO_VIRGULA);
         goto q1;
     }
@@ -556,7 +587,18 @@ void tipo() {
     }
 }
 
-void listaVariavel() { 
+void listaVariavel(int flag) {
+    if(flag) {cria_tabela_simbolos(info_atomo);}
+    int endereco = busca_tabela_simbolos(info_atomo.atributo_ID);
+        if(endereco == -1) {
+            printf("\nErro semantico: IDENTIFICADOR '%s' nao foi declarado!\n", info_atomo.atributo_ID);
+            exit(0);
+        }
+
+    if(!flag) {
+        printf("\tLEIT\n");
+        printf("\tARMZ %d\n", endereco);
+    }
     consome(IDENTIFICADOR);
     
 q1:
@@ -564,6 +606,19 @@ q1:
 
     if(lookahead == VIRGULA) {
         consome(VIRGULA);
+        if(flag) {cria_tabela_simbolos(info_atomo);}
+        
+        int endereco = busca_tabela_simbolos(info_atomo.atributo_ID);
+            if(endereco == -1) {
+                printf("\nErro semantico: IDENTIFICADOR '%s' nao foi declarado!\n", info_atomo.atributo_ID);
+                exit(0);
+            }
+
+
+        if(!flag) {
+            printf("\tLEIT\n");
+            printf("\tARMZ %d\n", endereco);
+        }
         consome(IDENTIFICADOR);
         goto q1;
     }
@@ -620,16 +675,29 @@ void comandoAtribuicao() {
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
 
     consome(SET);
+
+    int endereco = busca_tabela_simbolos(info_atomo.atributo_ID);
+    if(endereco == -1) {
+        printf("\nErro semantico: IDENTIFICADOR '%s' nao foi declarado!\n", info_atomo.atributo_ID);
+        exit(0);
+    }
+
     consome(IDENTIFICADOR);
     consome(TO);
     expressao();
+    printf("\tARMZ %d\n", endereco);
 }
 
 void comandoCondicional() {
+    int L1 = proximo_rotulo();
+    int L2 = proximo_rotulo();
     consome(IF);
     expressao();
     consome(DOIS_PONTOS);
+    printf("\tDSVF L%d\n", L1);
     comando();
+    printf("\tDSVS L%d\n",L2);
+    printf("L%d:\tNADA\n",L1);
     
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
     
@@ -637,19 +705,42 @@ void comandoCondicional() {
         consome(ELIF);
         comando();
     }
+
+    printf("L%d:\tNADA\n",L2);
 }
 
 void comandoRepeticao() {
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
 
+    int L1 = proximo_rotulo();
+    int L2 = proximo_rotulo();
+
     consome(FOR);
+
+    int endereco = busca_tabela_simbolos(info_atomo.atributo_ID);
+        if(endereco == -1) {
+            printf("\nErro semantico: IDENTIFICADOR '%s' nao foi declarado!\n", info_atomo.atributo_ID);
+            exit(0);
+        }
+
     consome(IDENTIFICADOR);
     consome(OF);
     expressao();
+    printf("\tARMZ %d\n", endereco);
     consome(TO);
+    printf("L%d:\tNADA\n", L1);
+    printf("\tCRVL %d\n", endereco);
     expressao();
     consome(DOIS_PONTOS);
+    printf("\tCMEG\n");
+    printf("\tDSVF L%d\n", L2);
     comando();
+    printf("\tCRVL %d\n", endereco);
+    printf("\tCRCT 1\n");
+    printf("\tSOMA\n");
+    printf("\tARMZ %d\n", endereco);
+    printf("\tDSVS L%d\n", L1);
+    printf("L%d:\tNADA\n", L2);
 }
 
 void comandoEntrada() {
@@ -657,7 +748,7 @@ void comandoEntrada() {
 
     consome(READ);
     consome(ABRE_PARENTESES);
-    listaVariavel();
+    listaVariavel(0);
     consome(FECHA_PARENTESES);
 }
 
@@ -665,13 +756,15 @@ void comandoSaida() {
     consome(WRITE);
     consome(ABRE_PARENTESES);
     expressao();
-    
+    printf("\tIMPR\n");
+
 q1:
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
 
     if(lookahead == VIRGULA) {
         consome(VIRGULA);
         expressao();
+        printf("\tIMPR\n");
         goto q1;
     }
 
@@ -687,6 +780,7 @@ q1:
    if(lookahead == OR) {
         consome(OR);
         expressaoLogica();
+        printf("\tDISJ\n");
         goto q1;
    } 
 }
@@ -700,6 +794,7 @@ q1:
     if(lookahead == AND) {
         consome(AND);
         expressaoRelacional();
+        printf("\tCONJ\n");
         goto q1;
     }
 }
@@ -710,8 +805,30 @@ void expressaoRelacional() {
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
     
     if(lookahead == MENOR || lookahead == MENOR_IGUAL || lookahead == IGUAL || lookahead == DIFERENTE || lookahead == MAIOR || lookahead == MAIOR_IGUAL) {
+        char operatorAux[20];
+        switch (lookahead) {
+            case MENOR:
+                strcpy(operatorAux, "CMME");
+                break;
+            case MENOR_IGUAL:
+                strcpy(operatorAux, "CMEG");
+                break;
+            case IGUAL:
+                strcpy(operatorAux, "CMIG");
+                break;
+            case DIFERENTE:
+                strcpy(operatorAux, "CMDG");
+                break;
+            case MAIOR:
+                strcpy(operatorAux, "CMMA");
+                break;
+            default:
+                strcpy(operatorAux, "CMAG");
+        }
+
         opRelacional();
         expressaoSimples();
+        printf("\t%s\n", operatorAux);
   }
 }
 
@@ -753,12 +870,14 @@ q1:
         case OP_SOMA:
             consome(OP_SOMA);
             termo();
+            printf("\tSOMA\n");
             goto q1;
             break;
 
         case OP_SUB:
             consome(OP_SUB);
             termo();
+            printf("\tSUBT\n");
             goto q1;
             break;
         
@@ -776,12 +895,14 @@ q1:
         case OP_MULT:
             consome(OP_MULT);
             fator();
+            printf("\tMULT\n");
             goto q1;
             break;
 
         case BARRA:
             consome(BARRA);
             fator();
+            printf("\tDIVI\n");
             goto q1;
             break;
         
@@ -794,19 +915,29 @@ void fator() {
     while(lookahead == COMENTARIO) {consome(COMENTARIO);}
 
     switch(lookahead) {
-        case IDENTIFICADOR:
+        case IDENTIFICADOR: {
+            int endereco = busca_tabela_simbolos(info_atomo.atributo_ID);
+            if(endereco == -1) {
+                printf("\nErro semantico: IDENTIFICADOR '%s' nao foi declarado!\n", info_atomo.atributo_ID);
+                exit(0);
+            }
+            printf("\tCRVL %d\n",endereco);
             consome(IDENTIFICADOR);
             break;
+        }
 
         case NUMERO:
+            printf("\tCRCT %d\n", converteBinario(info_atomo.atributo_numero));
             consome(NUMERO);
             break;
 
         case TRUE:
+            printf("\tCRCT 1\n");
             consome(TRUE);
             break;
 
         case FALSE:
+            printf("\tCRCT 0\n");
             consome(FALSE);
             break;
 
@@ -824,3 +955,35 @@ void fator() {
 
 //#########################
 // FIM: SINTATICO
+
+//#########################
+// INICIO: CODIGO INTERMEDIARIO
+
+int proximo_rotulo() {
+    qntRotulos++;
+    return qntRotulos;
+}
+
+int busca_tabela_simbolos(char atributo_ID[]) {
+    for(int i = 0; i < qntSimbolos; ++i) {
+        if(strcmp(atributo_ID, tabelaSimbolos[i].id) == 0) {return tabelaSimbolos[i].endereco;}
+  }
+
+    return -1;
+}
+
+void cria_tabela_simbolos(TInfoAtomo atomo) {
+    if(busca_tabela_simbolos(atomo.atributo_ID) != -1) {
+        printf("\nErro semantico: IDENTIFICADOR '%s' ja foi declarado!\n", atomo.atributo_ID);
+        exit(0);
+    }
+
+    strcpy(tabelaSimbolos[qntSimbolos].id, atomo.atributo_ID);
+    tabelaSimbolos[qntSimbolos].endereco = qntSimbolos;
+    qntSimbolos++;
+}
+
+
+//#########################
+// FIM: CODIGO INTERMEDIARIO
+
